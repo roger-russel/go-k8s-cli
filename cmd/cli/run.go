@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/roger-russel/go-k8s-cli/internal/cmd"
+	"github.com/roger-russel/go-k8s-cli/internal/cli"
 )
 
 func Run() {
@@ -13,5 +13,5 @@ func Run() {
 		}
 	}()
 
-	cmd.Root()
+	cli.Root()
 }
