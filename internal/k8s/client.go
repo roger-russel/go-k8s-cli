@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+//go:generage mockgen -source=$GOFILE -package=$GOPACKAGE -destination=mock_$GOFILE
 type Client interface {
 	CountPodsNumber() (int, error)
 	CountNodesNumber() (int, error)

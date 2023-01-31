@@ -39,3 +39,7 @@ pod/delete:
 .PHONY: minikube
 minikube:
 	minikube start --memory=4096 --cpus=4
+
+.PHONY: test
+test:
+	go test ./... -coverpkg=./... -race 
