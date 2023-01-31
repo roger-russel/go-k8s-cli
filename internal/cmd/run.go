@@ -1,41 +1,31 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/roger-russel/go-k8s-cli/internal/k8s"
 	"github.com/roger-russel/go-k8s-cli/pkg/core"
 	"github.com/spf13/cobra"
-	coreV1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 func run(cmd *cobra.Command, args []string) {
-	kcore := setupClientset(cmd).CoreV1()
+	kcli := setupClientset(cmd)
 	action := parseActionFlag(cmd)
-	command(action, kcore)
+	command(action, kcli)
 }
 
-func setupClientset(cmd *cobra.Command) *kubernetes.Clientset {
+func setupClientset(cmd *cobra.Command) k8s.Client {
 	kconfig, err := cmd.Flags().GetString("kubeconfig")
 	if err != nil {
 		core.Out("failed to get kubeconfig flag error:", err)
 		core.Exit(1)
 	}
 
-	config, err := clientcmd.BuildConfigFromFlags("", kconfig)
-
-	if err != nil {
-		core.Out(
-			fmt.Errorf("fail to build kubeconfig: %w", err),
-		)
-		core.Exit(1)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
+	cli, err := k8s.NewClient(
+		k8s.Config{
+			AuthType:   k8s.BuildConfigFromFlags,
+			Kubeconfig: kconfig,
+		})
 
 	if err != nil {
 		core.Out(
@@ -44,7 +34,7 @@ func setupClientset(cmd *cobra.Command) *kubernetes.Clientset {
 		core.Exit(1)
 	}
 
-	return clientset
+	return cli
 }
 
 func parseActionFlag(cmd *cobra.Command) string {
@@ -63,22 +53,18 @@ func parseActionFlag(cmd *cobra.Command) string {
 	return readEnum.String()
 }
 
-func command(action string, kcore v1.CoreV1Interface) {
+func command(action string, kcli k8s.Client) {
 	var (
 		total    int
 		err      error
-		pods     *coreV1.PodList
-		nodes    *coreV1.NodeList
 		readEnum ReadEnum
 	)
 
 	switch action {
 	case "pods":
-		pods, err = kcore.Pods("").List(context.TODO(), metav1.ListOptions{})
-		total = len(pods.Items)
+		total, err = kcli.CountPodsNumber()
 	case "nodes":
-		nodes, err = kcore.Nodes().List(context.TODO(), metav1.ListOptions{})
-		total = len(nodes.Items)
+		total, err = kcli.CountNodesNumber()
 	default:
 		core.Out("unknown command")
 		core.Exit(1)

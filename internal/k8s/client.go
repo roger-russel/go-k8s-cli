@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/roger-russel/go-k8s-cli/pkg/core"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Client interface {
@@ -20,22 +20,38 @@ type ClientImpl struct {
 }
 
 type Config struct {
-	Type string
+	AuthType   AuthType
+	Kubeconfig string
 }
 
-func NewClient(conf *rest.Config) Client {
-	clientSet, err := kubernetes.NewForConfig(conf)
+func NewClient(conf Config) (Client, error) {
+	var (
+		kconf *rest.Config
+		err   error
+	)
+
+	switch conf.AuthType {
+	case InClusterConfig:
+		kconf, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get in cluster config: %v", err)
+		}
+	case BuildConfigFromFlags:
+		kconf, err = buildConfigFromFlags(conf.Kubeconfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get kubernetes config: %v", err)
+		}
+	}
+
+	clientSet, err := kubernetes.NewForConfig(kconf)
 
 	if err != nil {
-		core.Out(
-			fmt.Errorf("fail to create a new clientset with the kubeconfig: %w", err),
-		)
-		core.Exit(1)
+		return nil, fmt.Errorf("fail to create a new clientset with the kubeconfig: %w", err)
 	}
 
 	return &ClientImpl{
 		clientSet,
-	}
+	}, nil
 }
 
 func (c *ClientImpl) CountPodsNumber() (int, error) {
@@ -46,4 +62,14 @@ func (c *ClientImpl) CountPodsNumber() (int, error) {
 func (c *ClientImpl) CountNodesNumber() (int, error) {
 	nodes, err := c.clientSet.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
 	return len(nodes.Items), err
+}
+
+func buildConfigFromFlags(kconfig string) (*rest.Config, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kconfig)
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to build kubeconfig: %w", err)
+	}
+
+	return config, nil
 }

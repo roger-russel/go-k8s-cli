@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	log "github.com/google/logger"
+	"github.com/roger-russel/go-k8s-cli/internal/config"
 	"github.com/roger-russel/go-k8s-cli/internal/k8s"
-	"k8s.io/client-go/rest"
 )
 
 type podsResponse struct {
@@ -22,34 +22,32 @@ type nodesResponse struct {
 func podsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	config, err := rest.InClusterConfig()
+	cli, err := k8s.NewClient(k8s.Config{AuthType: k8s.InClusterConfig})
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("fail"))
+		w.Write([]byte("internal server error"))
 		log.Errorf("failed to get cluster config: %v", err)
 		return
 	}
 
-	cli := k8s.NewClient(config)
-
 	total, err := cli.CountPodsNumber()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("fail"))
+		w.Write([]byte("internal server error"))
 		log.Errorf("failed to count pods: %v", err)
 		return
 	}
 
 	resp := podsResponse{
-		Name:     "TBD",
+		Name:     config.Envs.CandidateName,
 		PodCount: total,
 	}
 
 	respByte, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("fail"))
+		w.Write([]byte("internal server error"))
 		log.Errorf("error marshalling response: %v", err)
 		return
 	}
@@ -61,16 +59,15 @@ func podsHandler(w http.ResponseWriter, r *http.Request) {
 func nodesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	config, err := rest.InClusterConfig()
+	cli, err := k8s.NewClient(k8s.Config{AuthType: k8s.InClusterConfig})
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("fail"))
-		log.Errorf("failed to get cluster config")
+		w.Write([]byte("internal server error"))
+		log.Errorf("failed to get cluster config: %v", err)
 		return
 	}
 
-	cli := k8s.NewClient(config)
 	total, err := cli.CountNodesNumber()
 
 	if err != nil {
@@ -87,7 +84,7 @@ func nodesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := nodesResponse{
-		Name:      "TBD",
+		Name:      config.Envs.CandidateName,
 		NodeCount: total,
 	}
 

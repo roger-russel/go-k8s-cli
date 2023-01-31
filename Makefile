@@ -1,4 +1,4 @@
-version=v0.0.2
+version=v0.0.4
 
 .PHONY: helm
 helm:
@@ -6,16 +6,11 @@ helm:
 
 .PHONY: build
 build:
-	@docker build -t go-k8s-cli:v0.0.1 -f k8s/Dockerfile .
+	@docker build -t go-k8s-cli:$(version) -f k8s/Dockerfile .
 
 .PHONY: build/minikube
 build/minikube:
-	bash -c "$(cat <<EOF
-		minikube docker-env;
-		eval $(minikube -p minikube docker-env);
-		docker build -t go-k8s-cli:v0.0.2 -f k8s/Dockerfile .
-	EOF
-	)"
+	@./scripts/registry-image.sh $(version)
 
 .PHONY: helm/install
 helm/install:
@@ -33,9 +28,13 @@ helm/list:
 port-forward:
 	@kubectl port-forward svc/go-k8s-cli 8080:80
 
-.PHONY: logs
-logs:
+.PHONY: pod/logs
+pod/logs:
 	kubectl logs deploy/go-k8s-cli -f
+
+.PHONY: pod/delete
+pod/delete:
+	kubectl delete pod $(shell kubectl get pod | grep go | awk -F" " '{print $$1}')
 
 .PHONY: minikube
 minikube:

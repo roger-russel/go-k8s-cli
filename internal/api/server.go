@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -11,7 +12,7 @@ type Config struct {
 	Addr string
 }
 
-func Server(conf Config) {
+func Server(ctx context.Context, conf Config) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
