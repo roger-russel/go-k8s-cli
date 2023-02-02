@@ -34,7 +34,7 @@ pod/logs:
 
 .PHONY: pod/delete
 pod/delete:
-	kubectl delete pod $(shell kubectl get pod | grep go | awk -F" " '{print $$1}')
+	kubectl delete pod $(shell kubectl get pod | grep go-k8s-cli | awk -F" " '{print $$1}')
 
 .PHONY: minikube
 minikube:
